@@ -24,9 +24,9 @@ const createUser = (req, res, next) => {
       }))
       .catch((err) => {
         if (err.name === 'ValidationError') {
-          next(new BadRequest('Переданы некорректные данные при создании пользователя'));
+          throw new BadRequest('Переданы некорректные данные при создании пользователя');
         } else if (err.code === 11000) {
-          next(new ConflictError('Пользователь с таким email уже существует'));
+          throw new ConflictError('Пользователь с таким email уже существует');
         } else {
           next(err);
         }
@@ -34,12 +34,12 @@ const createUser = (req, res, next) => {
 };
 
 const getUser = (req, res, next) => {
-  User.findById(req.params.userId)
+  User.findById(req.user._id)
     .orFail(() => { throw new NotFound('Не найдено'); })
     .then((user) => res.status(200).send(user))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        next(new BadRequest('Запрашиваемый пользователь не найден'));
+        throw new BadRequest('Запрашиваемый пользователь не найден');
       } else {
         next(err);
       }
@@ -58,7 +58,10 @@ const updateUser = (req, res, next) => {
     .then((user) => res.send(user))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        next(new BadRequest('Переданы некорректные данные при обновлении профиля'));
+        throw new BadRequest('Переданы некорректные данные при обновлении профиля');
+      }
+      if (err.code === 11000) {
+        throw new ConflictError('Пользователь с таким email уже существует');
       } else {
         next(err);
       }
@@ -88,8 +91,7 @@ const login = (req, res, next) => {
             },
           );
           res.send({ token });
-        })
-        .catch((err) => next(err));
+        });
     })
     .catch(next);
 };

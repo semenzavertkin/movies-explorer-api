@@ -1,6 +1,6 @@
 const Movie = require('../models/movie');
 const NotFound = require('../errors/NotFound');
-const ConflictError = require('../errors/ConflictError');
+const Forbidden = require('../errors/Forbidden');
 
 const getMovies = (req, res, next) => {
   const owner = req.user._id;
@@ -55,11 +55,11 @@ const deleteMovie = (req, res, next) => {
     .orFail(() => { throw new NotFound('Не найдено'); })
     .then((movie) => {
       if (req.user._id !== movie.owner.toString()) {
-        throw new ConflictError('Не наasdйдено');
+        throw new Forbidden('В доступе отказано');
       }
       Movie.findByIdAndRemove(req.params._id)
         .orFail(() => { throw new NotFound('Не найдено'); })
-        .then(() => res.send({ message: 'asdasdasd' }))
+        .then(() => res.send({ message: 'Успешно' }))
         .catch(next);
     })
     .catch(next);
