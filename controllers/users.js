@@ -24,9 +24,9 @@ const createUser = (req, res, next) => {
       }))
       .catch((err) => {
         if (err.name === 'ValidationError') {
-          throw new BadRequest('Переданы некорректные данные при создании пользователя');
+          next(new BadRequest('Переданы некорректные данные'));
         } else if (err.code === 11000) {
-          throw new ConflictError('Пользователь с таким email уже существует');
+          next(new ConflictError('Пользователь с таким email уже существует'));
         } else {
           next(err);
         }
@@ -35,11 +35,11 @@ const createUser = (req, res, next) => {
 
 const getUser = (req, res, next) => {
   User.findById(req.user._id)
-    .orFail(() => { throw new NotFound('Не найдено'); })
+    .orFail(() => { next(new NotFound('Не найдено')); })
     .then((user) => res.status(200).send(user))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        throw new BadRequest('Запрашиваемый пользователь не найден');
+        next(new BadRequest('Запрашиваемый пользователь не найден'));
       } else {
         next(err);
       }
@@ -54,14 +54,14 @@ const updateUser = (req, res, next) => {
     { name, email },
     { new: true, runValidators: true },
   )
-    .orFail(() => { throw new NotFound('Не найдено'); })
+    .orFail(() => { next(new NotFound('Не найдено')); })
     .then((user) => res.send(user))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        throw new BadRequest('Переданы некорректные данные при обновлении профиля');
+        next(new BadRequest('Переданы некорректные данные при обновлении профиля'));
       }
       if (err.code === 11000) {
-        throw new ConflictError('Пользователь с таким email уже существует');
+        next(new ConflictError('Пользователь с таким email уже существует'));
       } else {
         next(err);
       }
@@ -75,13 +75,13 @@ const login = (req, res, next) => {
     .select('+password')
     .then((user) => {
       if (!user) {
-        throw new AuthError('Ошибка авторизации');
+        next(new AuthError('Ошибка авторизации'));
       }
       return bcrypt
         .compare(password, user.password)
         .then((matched) => {
           if (!matched) {
-            throw new AuthError('Ошибка авторизации');
+            next(new AuthError('Ошибка авторизации'));
           }
           const token = jwt.sign(
             { _id: user._id },

@@ -1,6 +1,7 @@
 const Movie = require('../models/movie');
 const NotFound = require('../errors/NotFound');
 const Forbidden = require('../errors/Forbidden');
+const BadRequest = require('../errors/BadRequest');
 
 const getMovies = (req, res, next) => {
   const owner = req.user._id;
@@ -8,9 +9,6 @@ const getMovies = (req, res, next) => {
   Movie.find({ owner })
     .then((result) => {
       res.send(result);
-    })
-    .catch(() => {
-      throw new NotFound('Не найдено');
     })
     .catch(next);
 };
@@ -47,18 +45,24 @@ const createMovie = (req, res, next) => {
     nameEN,
   })
     .then((movie) => res.send(movie))
-    .catch(next);
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        next(new BadRequest('Переданы некорректные данные'));
+      } else {
+        next(err);
+      }
+    });
 };
 
 const deleteMovie = (req, res, next) => {
   Movie.findById(req.params._id)
-    .orFail(() => { throw new NotFound('Не найдено'); })
+    .orFail(() => { next(new NotFound('Не найдено')); })
     .then((movie) => {
       if (req.user._id !== movie.owner.toString()) {
-        throw new Forbidden('В доступе отказано');
+        next(new Forbidden('В доступе отказано'));
       }
       Movie.findByIdAndRemove(req.params._id)
-        .orFail(() => { throw new NotFound('Не найдено'); })
+        .orFail(() => { next(new NotFound('Не найдено')); })
         .then(() => res.send({ message: 'Успешно' }))
         .catch(next);
     })
